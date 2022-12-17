@@ -2,3 +2,4 @@ streamlit
 streamlit_chat
 torch
 transformers
+protobuf==3.20.*
