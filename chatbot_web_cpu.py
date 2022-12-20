@@ -36,7 +36,7 @@ bert_config = BertConfig.from_pretrained(bert_name)
 tokenizer = BertTokenizer.from_pretrained(bert_name)
 tokenizer.add_tokens(['\n'], special_tokens=True)
 context_transform = SelectionJoinTransform(tokenizer=tokenizer, max_len=512)
-response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=512)
+response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=40)
 concat_transform = SelectionConcatTransform(tokenizer=tokenizer, max_len=512)
 
 class CPU_Unpickler(pickle.Unpickler):
@@ -57,14 +57,11 @@ def cached_polymodel():
     
     bert_name = 'bert-base-uncased'
     bert_config = BertConfig.from_pretrained(bert_name)
+    bert = BertModel.from_pretrained(bert_name, config=bert_config)
     
     tokenizer = BertTokenizer.from_pretrained(bert_name)
     tokenizer.add_tokens(['\n'], special_tokens=True)
-    
-    context_transform = SelectionJoinTransform(tokenizer=tokenizer, max_len=512)
-    response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=512)
-    
-    bert = BertModel.from_pretrained(bert_name, config = bert_config)
+
     model = PolyEncoder(bert_config, bert=bert, poly_m=64)
     model.resize_token_embeddings(len(tokenizer))
     model.load_state_dict(torch.load(PATH, map_location=device))
@@ -80,13 +77,11 @@ def cached_crossmodel():
     
     bert_name = 'bert-base-uncased'
     bert_config = BertConfig.from_pretrained(bert_name)
+    bert = BertModel.from_pretrained(bert_name, config=bert_config)
     
     tokenizer = BertTokenizer.from_pretrained(bert_name)
     tokenizer.add_tokens(['\n'], special_tokens=True)
-    
-    concat_transform = SelectionConcatTransform(tokenizer=tokenizer, max_len=512)
-    
-    bert = BertModel.from_pretrained(bert_name, config = bert_config)
+
     rerank_model = CrossEncoder(bert_config, bert=bert)
     rerank_model.resize_token_embeddings(len(tokenizer))
     rerank_model.load_state_dict(torch.load(PATH, map_location=device))
@@ -117,12 +112,12 @@ st.markdown('Hello! I am a consultant bot')
 
 # session으로 관리해야 초기화 되지 않음
 # save chatbot utterances
-if 'generated' not in st.session_state:
-    st.session_state['generated'] = []
+if 'chatbot_reply' not in st.session_state:
+    st.session_state['chatbot_reply'] = []
 
 # save user's utterances
-if 'past' not in st.session_state:
-    st.session_state['past'] = []
+if 'user_utterance' not in st.session_state:
+    st.session_state['user_utterance'] = []
     
 with st.form('form', clear_on_submit = True):
     user_input = st.text_input('User: ', '')
@@ -158,12 +153,11 @@ if submitted and user_input:
     final_index = rerank_list.index(max(rerank_list))
     best_response = top_cand[final_index]
     
-    st.session_state.past.append(user_input)
-    st.session_state.generated.append(best_response)
+    st.session_state.user_utterance.append(user_input)
+    st.session_state.chatbot_reply.append(best_response)
 
 # 대화 visualize
-for i in range(len(st.session_state['past'])):
-    message(st.session_state['past'][i], is_user = True, key = str(i) + '_user')
-    if len(st.session_state['generated']) > i:
-        message(st.session_state['generated'][i], key = str(i) + '_bot')
-
+for i in range(len(st.session_state['user_utterance'])):
+    message(st.session_state['user_utterance'][i], is_user = True, key = str(i) + '_user')
+    if len(st.session_state['chatbot_reply']) > i:
+        message(st.session_state['chatbot_reply'][i], key = str(i) + '_bot')
