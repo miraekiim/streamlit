@@ -26,9 +26,12 @@ bert_config = BertConfig.from_pretrained(bert_name)
 # tokenizer
 tokenizer = BertTokenizer.from_pretrained(bert_name)
 tokenizer.add_tokens(['\n'], special_tokens=True)
+
+# 전역변수 설정
+#global bert, model, rerank_model, context_transform, response_transform, concat_transform
 # transfrom.py에서 input 함수 불러오기
 context_transform = SelectionJoinTransform(tokenizer=tokenizer, max_len=512)
-response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=512)
+response_transform = SelectionSequentialTransform(tokenizer=tokenizer, max_len=40)
 concat_transform = SelectionConcatTransform(tokenizer=tokenizer, max_len=512)
 
 # model 불러오기
@@ -72,7 +75,6 @@ def response_input(candidates):
 
 
 def ctx_emb(contexts_token_ids_list_batch, contexts_input_masks_list_batch):
-
     with torch.no_grad():
         model.eval()
         
@@ -86,7 +88,6 @@ def ctx_emb(contexts_token_ids_list_batch, contexts_input_masks_list_batch):
 
 
 def cands_emb(responses_token_ids_list_batch, responses_input_masks_list_batch):
-
     with torch.no_grad():
         model.eval()
                 
@@ -120,7 +121,6 @@ def input_text(context,response):
     return text_token_ids_list_batch, text_input_masks_list_batch, text_segment_ids_list_batch
     
 def text_emb(text_token_ids_list_batch, text_input_masks_list_batch, text_segment_ids_list_batch):
-    
     batch_size, neg, dim = text_token_ids_list_batch.shape
     text_token_ids_list_batch = text_token_ids_list_batch.reshape(-1,dim)
     text_input_masks_list_batch = text_input_masks_list_batch.reshape(-1,dim)
